@@ -3,7 +3,8 @@ import numpy as np
 import fractions
 from io import StringIO
 from fractions import Fraction
-
+from flask import Flask, abort, request, render_template
+app = Flask(__name__)
 np.set_printoptions(formatter={'all': lambda x: str(fractions.Fraction(x).limit_denominator())})
 
 
@@ -421,12 +422,46 @@ def danchunrun(A, D):
         else:
             print('出错')
 
-    print('result_type', result_type)
+    # print('result_type', result_type)
     # print(table_all)
-    return table_all, result_type
+    result = table_all + '<h3 id="解的类型"><a href="#解的类型" class="header-anchor">#</a> 解的类型: ' + result_type + '</h3>'
+    return result
 
+def fixD(A, D):
+    xa_withindex = re.findall(r'x\d', A)
+    xd_withindex = re.findall(r'x\d', D)
+    xdindex=[int(i.replace("x","")) for i in xd_withindex]
+    xaindex = [int(i.replace("x", "")) for i in xa_withindex]
+    xamax=max(xaindex)
+    xdmax = max(xdindex)
+    for addi in range(xdmax+1, xamax+1):
+        print(addi)
+        D+="+0x"+str(addi)
+    return D
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'GET':
+        result='<form action="" method="post" id="danchun"><h3 >目标函数</h3><input type="text" name="textd"><br><h3 >约束条件</h3><textarea  name="texta"  rows="10" cols="30" form="danchun"></textarea><br><input type="submit" name="submit"></form>'
+        data = {
+            "result": result,
+        }
+        return render_template("danchun.html", data=data)
+    elif request.method == 'POST':
+        D = request.form.get('textd')
+        A = request.form.get('texta')
+
+        result = danchunrun(A, fixD(A,D))
+
+        data = {
+            "result": result,
+        }
+        return render_template("danchun.html", data=data)
 if __name__=="__main__":
-    A='x1-2x2-x3=-2\n-x1-x2-x4=-4\n-2x1+x2-x5=-5'
-    D='max z=x1+2x2+0x3+0x4+0x5'
-    res, _=danchunrun(A,D)
-    print(res)
+
+    app.run()
+    # A='x1-2x2-x3=-2\n-x1-x2-x4=-4\n-2x1+x2-x5=-5'
+    # D='max z=x1+2x2'
+    # D = fixD(A,D)
+    # res, _=danchunrun(A,D)
+    # print(res)
